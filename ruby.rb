@@ -1,4 +1,5 @@
 class Song
+
 def initialize(name, artist, duration)
 @name= name
 @artist= artist
@@ -1401,5 +1402,50 @@ Math.sin(0)
 include 'Math' # The Math namespace can be included
 sin(0)
 # => 0.0: Now we have easy access to the functions
+
+
+Loading and Requiring Modules
+Ruby programs may be broken up into multiple files, and the most natural way to
+partition a program is to place each nontrivial class or module into a separate file. These
+separate files can then be reassembled into a single program (and, if well-designed, can
+be reused by other programs) using require or load. These are global functions defined
+in Kernel, but are used like language keywords. The same require method is also used
+for loading files from the standard library.
+load and require serve similar purposes, though require is much more commonly used
+than load. Both functions can load and execute a specified file of Ruby source code. If
+the file to load is specified with an absolute path, or is relative to ~ (the user’s home
+directory), then that specific file is loaded. Usually, however, the file is specified as a
+relative path, and load and require search for it relative to the directories of Ruby’s
+load path (details on the load path appear below).
+Despite these overall similarities, there are important differences between load and
+require:
+
+Despite these overall similarities, there are important differences between load and
+require:
+
+• In addition to loading source code, require can also load binary extensions to
+Ruby. Binary extensions are, of course, implementation-dependent, but in C-based
+implementations, they typically take the form of shared library files with exten-
+sions like .so or .dll.
+
+• load expects a complete filename including an extension. require is usually passed
+a library name, with no extension, rather than a filename. In that case, it searches
+for a file that has the library name as its base name and an appropriate source or
+native library extension. If a directory contains both an .rb source file and a binary
+extension file, require will load the source file instead of the binary file.
+
+• load can load the same file multiple times. require tries to prevent multiple loads
+of the same file. (require can be fooled, however, if you use two different, but
+equivalent, paths to the same library file. In Ruby 1.9, require expands relative
+paths to absolute paths, which makes it somewhat harder to fool.) require keeps
+track of the files that have been loaded by appending them to the global array
+$" (also known as $LOADED_FEATURES). load does not do this.
+
+• load loads the specified file at the current $SAFE level. require loads the specified
+library with $SAFE set to 0, even if the code that called require has a higher value
+for that variable. See §10.5 for more on $SAFE and Ruby’s security system. (Note
+that if $SAFE is set to a value higher than 0, require will refuse to load any file with
+a tainted filename or from a world-writable directory. In theory, therefore, it should
+be safe for require to load files with a reduced $SAFE level.)
 
 
