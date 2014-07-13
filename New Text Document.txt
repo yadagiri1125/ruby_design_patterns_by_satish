@@ -1,0 +1,371 @@
+Dear Yadagiri Tandu,
+ADP India Pvt. Ltd. welcomes you to the Self-Service Payroll Information System.
+The Employee Self Service (ESS) website can now be accessed at: https://www.ind.adp.com/ess
+Your login credentials are as follows:
+Company Code:	:	aequor
+User Name	:	AQR00234
+Password	:	91ce88ffbba5
+Request you to login and change the password immediately.
+
+
+
+ ssh yadagiri@192.168.7.25
+
+yadagiri@123  <-- sudo pass
+
+yadagiri.tandu@aequor.com
+Password@1234
+
+yadagiri.tandu
+p@ssw0rd 
+
+
+
+
+Jira
+yadagiri.tandu
+satish1125
+
+ctrl + /  for commenting and uncommenting
+
+
+ctrl + alt + L  for auto format
+
+bundle exec rake sunspot:solr:start 
+RAILS_ENV=test
+
+
+
+User.create!(username: 'satish1', password: 'satish' ,password_confirmation: 'satish',
+                 email: 'admin_user@yopmail.com', user_type: 'internal', roles_mask: '32', status: 'active')
+
+
+
+unit testing for models
+
+functional testing for controllers
+
+integration testing for end to end work flow
+
+
+
+zip -r zipfile.zip directory
+
+
+
+
+heroku login
+Email: yadagiri.tandu@hotmail.com
+Password: your-password
+
+
+057501514973
+057501514973
+
+536608391
+
+
+
+
+uname: asain
+passwd: asain123@
+[4:15:37 AM] Aashish Saini: collaboration.srds.com
+
+
+./aashish/Downloads/RubyMine-6.3.2/bin/rubymine.sh
+
+
+
+Magazine
+
+ modify_link_people_path(id: person.id)
+
+<i class="glyphicon glyphicon-user"></i>
+
+<a class="glyphicon glyphicon-remove padding-15 mrgn_top_3" data-confirm="Are you sure?" data-method="delete" data-remote="true" href="/address_linking/mailing_addresses/8?segment_detail_id=101" rel="nofollow"></a>
+
+
+
+
+
+ tar -xvf yourfile.tar
+
+
+
+7042353817
+7836049639
+
+
+
+
+
+search function of branch office
+
+step1
+serngment ---> 999 => ""
+seed
+step2:
+
+consta file 
+
+
+stpe3:
+
+create addrxperson
+
+   controller -->follow the headquarter controller
+
+
+step4:
+
+views
+
+step5:
+
+model < master
+
+model in master 
+
+
+
+contro
+model
+routing 
+factory
+
+
+
+
+
+
+
+
+
+
+
+
+Here are some RubyMine shortcuts I use everyday
+
+1. cmd + E
+cmd + E brings up the ‘Recent Files’ dialog, but I find it most useful when switching two files back and forth.
+
+2. cmd + [ or cmd + ]
+similar to ‘back’ and ‘forward’ buttons, every useful
+
+3. cmd + shift + N
+find files
+
+4. cmd+ shift + F
+global search
+
+5. cmd + 1 .. 9
+bring up different panels
+
+6. ctrl + W
+once for single word selection, press multiple times to increase the selection range
+
+7. fn + Up/Down
+scroll up/down one page, the other useful shortcut is ctrl + Up/Down which scroll up/down one method
+
+8. cmd + B
+look up a method, very useful
+
+9. cmd + option + L
+format code – you have to love this feature, it is awesome.
+
+10 ctrl + N
+Use it in project panel to create new files
+
+Here are some shortcuts I should really start to use
+
+1. opt + shift + C
+bring up all recent changes
+
+2. cmd + shift + A
+Go to Action. if you can’t remember shortcuts, this is the way to look it up
+
+
+
+
+$('#address_x_person_display').html("<%= j render 'shared/display_search_result_address', address_objs: @search, selected_objs: @classified_data_guardians, seg: 'classified_data_guardian' %>");
+
+
+
+
+$('#address_x_person_display').html('<%= j render 'address_x_persons/form' %>');
+
+
+
+$('#address_x_person_display').html('<%= j render 'address_x_persons/display_person_details',people: @search %>');
+
+
+
+classified_personal
+address_x_person
+
+
+
+
+
+
+
+
+<% unless rop_data_guardian_objs.blank? %>
+    <% rop_data_guardian_objs.reverse.each do |rop_data_guardian| %>
+        <tr id="<%= seg %>_<%= rop_data_guardian.id %>">
+          <td>
+            <%= h rop_data_guardian.xref.party.name %>
+          </td>
+          <td><%= display_address(rop_data_guardian.xref) %> </td>
+          <td>
+            <%= link_to '', address_x_person_linking_rop_data_guardian_path(rop_data_guardian.id, segment_detail_id: sub_seg), method: :delete, data: { confirm: 'Are you sure?' } , remote: true, class: 'glyphicon glyphicon-remove padding-right-5 mrgn_top_3', title: 'Delete Address', rel: 'tooltip' %>
+          </td>
+          <td data-value="<%= rop_data_guardian.xref.id %>">
+            <%= link_to '', address_x_persons_path, remote: true, class: 'glyphicon glyphicon-user padding-right-5 mrgn_top_3', id: 'associate_person_link_for_rop_data_guardian'  %>
+          </td>
+        </tr>
+    <% end %>
+<% else %>
+    <tr>
+      <td colspan='4'>No records found</td>
+    </tr>
+<% end %>
+<div id="associate_person"></div>
+
+<script>
+$('#associate_person_link_for_rop_data_guardian').click(function(){
+  var address_selected = $(this).closest('td').data('value');
+  var persons_selected_ids = [];
+
+  $.ajax({
+    url: $('#associate_person_link').attr('href'),
+    type: 'GET'
+  });
+
+  $('#associate_person').dialog({
+    modal: true,
+    width: 600,
+    height: 500,
+    title: 'Associate Person(s) to Address',
+    resizable: false,
+    buttons: {
+        "Save": function() {
+          $('#associate_person input[type=checkbox]:checked').each(function(){
+            persons_selected_ids.push($(this).val());
+          });
+
+          var address_x_person = $.param({address_x_person: {address_id: address_selected, person_id: persons_selected_ids} });
+
+          $.ajax({
+            url: '<%= url_for(address_x_persons_path) %>',
+            type: 'POST',
+            data: address_x_person,
+            success: function(){
+              $("#associate_person").dialog( "close" );
+              $("#associate_person").empty();
+            }
+          });
+        },
+        Cancel: function() {
+          $(this).dialog( "close" );
+        }
+    }
+  }); 
+  
+
+});
+</script>
+
+
+
+
+
+
+
+$('#address_x_person_display').empty();
+<% @search.each_hit_with_result do |hit, person| %>
+ $('#address_x_person_display').append("<tr><td><%= j check_box_tag 'address_x_person[:person_id]', person.id, false %></td><td><%= j full_name_with_job_title(person) %></td></tr>");
+<% end %>
+
+
+classified_data_guardian
+
+head_quarter
+
+
+
+
+
+
+
+$('#display_persons_information').append("<tr><td><%= j check_box_tag 'address_x_person[:person_id]', person.id, false %></td><td><%= j person.first_name %></td></tr>");
+
+
+
+
+
+
+
+steps ::
+
+1. creating a company
+2.creating the address details 
+3.creating the person details
+4.creating the email details 
+5.creating the url details
+6. creating the party
+7.affliating the party with created company 
+8.checking functionality of all the segment groups and segments
+
+
+
+
+
+
+
+
+ GlobalUpdateDate(
+id: integer, 
+ verified_on: string,
+ update_on: string,
+ counts_on: string,
+ user_id: integer,
+ segment_id: integer,
+ smid_id: integer,
+ smid_unit_id: integer
+)
+
+segment_id: integer
+verified_on: date
+updated_on: date
+counts_thru_on: date
+
+integer
+date
+date
+date
+
+rails g migration change_format_of_verified_on_and_update_on_counts_on_in_global_update_date
+
+
+rename_column :global_update_dates, :update_on, :updated_on
+rename_column :global_update_dates, :counts_on, :counts_thru_on
+change_column :global_update_dates, :verified_on,  'date USING CAST(verified_on AS date)'
+change_column :global_update_dates, :updated_on,  'date USING CAST(updated_on AS date)'
+change_column :global_update_dates, :counts_thru_on,  'date USING CAST(counts_thru_on AS date)'
+
+
+  verified_on character varying(255),
+  update_on character varying(255),
+  counts_on character varying(255),
+
+
+  verified_on date,
+  updated_on date,
+  counts_thru_on date,
+  segment_id integer
+
+
+
+
+

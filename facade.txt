@@ -1,0 +1,299 @@
+_obj = new
+
+
+instance_delegate(hash) public
+
+Takes a hash as its argument. The key is a symbol or an array of symbols. These symbols correspond to method names. The value is the accessor to which the methods will be delegated.
+
+
+def_instance_delegator(accessor, method, ali = method) public
+Defines a method method which delegates to obj (i.e. it calls the method of the same name in obj). If new_name is provided, it is used as the name for the delegate method.
+
+
+
+delegation:
+
+class Post
+  belongs_to :user
+  delegate :name, :to => :user, :prefix => true
+end
+
+Post.new.user_name
+
+
+class Post
+  belongs_to :user
+  delegate :name, :to => :user, :prefix => true, :allow_nil => true
+end
+
+Post.new.user_name
+# => nil
+
+
+
+
+In Rails, try() lets you call methods on an object without having to worry about the possibility of that object being nil and thus raising an exception - See more at: http://everydayrails.com/2011/04/28/rails-try-method.html#sthash.WvA9iuUg.dpuf
+
+
+
+module_eval(*args) public
+Evaluates the string or block in the context of mod. This can be used to add methods to a class. module_eval returns the result of evaluating its argument. The optional filename and lineno parameters set the text for error messages.
+
+class Thing
+end
+a = %q{def hello() "Hello there!" end}
+Thing.module_eval(a)
+puts Thing.new.hello()
+Thing.module_eval("invalid code", "dummy", 123)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Understanding class_eval and instance_eval
+
+Two Ruby methods seem to cause more confusion than any others, particularly due to the way they are explained. These two are class_eval and instance_eval. The names are very similar, and their behavior is counterintuitive. The bottom line is this:
+
+Use ClassName.instance_eval to define a class method (one associated with the class object but not visible to instances).
+Use ClassName.class_eval to define an instance method (one that applies to all of the instances of ClassName).
+To understand why this is true, let's go through some examples, starting with the following code:
+
+class MyClass
+  def initialize(num)
+    @num = num
+  end
+end
+
+a = MyClass.new(1)
+b = MyClass.new(2)
+Before we get going, remember that in Ruby everything is an object. That means classes are objects too. When you define MyClass, Ruby will create a global variable with the name MyClass, which is the class object for MyClass. When you write MyClass.new you are getting the class object MyClass and then calling the new method on that object, which gives you a new instance of MyClass. Instances are the actual objects of the class that you would normally use. There is one class with many instances.
+
+So we have two objects that are both of the same class. Of course, this class isn't very useful because it doesn't do anything. There is no way to access @num becasuse we did not define any getter or setter methods.
+
+irb> a.num
+NoMethodError: undefined method `num' for #<MyClass:0x007fba5c02c858 @num="1">
+Let's look briefly at instance_eval. What can we do with it? We can run code as if we were inside a method of the specific object we call it on. That means we can access instance variables and private methods. Let's evaluate an expression in the instances of MyClass so that we get the values out.
+
+irb> a.instance_eval { @num }
+=> 1
+irb> b.instance_eval { @num }
+=> 2
+That's great, but it would be a real pain to do that a lot. Let's define a method to do it for us.
+
+irb> a.instance_eval do
+irb>   def num
+irb>     @num
+irb>   end
+irb> end
+=> nil
+irb> a.num
+=> 1
+irb> b.num
+NoMethodError: undefined method `num' for #<MyClass:0x007fba5c08e5f8 @num="2">
+Whoops! We used instance_eval, which only evaluates in the context of one object. We defined a method, but only on the particular object a. How do we make a method that is shared by all objects of that class? Perhaps we should define a method on the class object?
+
+irb> MyClass.instance_eval do
+irb>   def num
+irb>     @num
+irb>   end
+irb> end
+=> nil
+irb> b.num
+NoMethodError: undefined method `num' for #<MyClass:0x007fba5c08e5f8 @num="2">
+Oops, that didn't work either. What happened? Well, we did the same thing as above, but on a class object! That means we defined a method on the class object; this is not the same thing as a method that gets inherited by the objects of that class. It's just the same as if we defined a method in the class with def self.num, which is similar to a class static method in Java. This method would have to be invoked as MyClass.num, not a.num, and it won't work anyway:
+
+irb> MyClass.num
+=> nil
+We get nil here because there is no variable @num in the MyClass object. Undefined variables have a default value of nil.
+
+Alright, so what's the right way to do it? The answer is class_eval:
+
+irb> MyClass.class_eval do
+irb>   def num
+irb>     @num
+irb>   end
+irb> end
+=> nil
+irb> b.num
+=> 2
+Horray! That worked. We defined a method for the class, not on the class object, and that method is then available for all objects of that class.
+
+Note that we called class_eval on MyClass, not on one of the instances. Invoking class_eval on an instance wouldn't work because class_eval isn't a method of arbitrary objects, only of class objects like MyClass. But you can get an object's class dynamically with the class method:
+
+irb> a.class_eval
+NoMethodError: undefined method `class_eval' for #<MyClass:0x007fba5c02c858 @num="1">
+irb> a.class.class_eval {}
+=> nil
+Another way to think about this is that class_eval is equivalent to typing the code inside a class statement:
+
+MyClass.class_eval do
+  def num
+    @num
+  end
+end
+behaves exactly the same as the following code:
+
+class MyClass
+  def num
+    @num
+  end
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+Metaprogramming Ruby: class_eval and instance_eval
+October 25, 2010
+ 
+I am currently reading a great book called Metaprogramming Ruby, an in-depth guide to dynamic code and code generation in Ruby. There have been a lot of light bulb moments for me while reading. Sometimes when the book explains a concept or Ruby feature, it sheds light on things I've seen in other people's code – things I've always wondered about. One such example is class_eval and instance_eval. These methods allow you to evaluate arbitrary code in the context of a particular class or object. They're slightly similar to call, apply and bind in JavaScript, in that you are altering the value of self (this in JavaScript) when you use them. Let's take a look at some examples to demonstrate their usage.
+
+class Person
+end
+
+Person.class_eval do
+  def say_hello
+   "Hello!"
+  end
+end
+
+jimmy = Person.new
+jimmy.say_hello # "Hello!"
+In this example, class_eval allows us to define a method within the Person class outside of its original definition and without reopening the class with the standard syntax. This could be useful when the class you want to add this method to is not known until runtime.
+
+class Person
+end
+
+Person.instance_eval do
+  def human?
+    true
+  end
+end
+
+Person.human? # true
+This example of instance_eval is similar, but evaluates the code in the context of an instance instead of a class. This is confusing at first, because in these examples class_eval creates instance methods and instance_eval creates class methods. There is reason behind the madness, however.
+
+class_eval is a method of the Module class, meaning that the receiver will be a module or a class. The block you pass to class_eval is evaluated in the context of that class. Defining a method with the standard def keyword within a class defines an instance method, and that's exactly what happens here.
+
+instance_eval, on the other hand, is a method of the Object class, meaning that the receiver will be an object. The block you pass to instance_eval is evaluated in the context of that object. That means that Person.instance_eval is evaluated in the context of the Person object. Remember that a class name is simply a constant which points to an instance of the class Class. Because of this fact, defining a method in the context of Class instance referenced by Person creates a class method for Person class.
+
+It may be difficult to wrap your mind around that if you're not familiar with the Ruby object model, but it's still easy to remember how these methods behave with a simple mnemonic device: when called on a class name constant, these two methods will allow you to create methods of the opposite type from their names. MyClass.class_eval will create instance methods and MyClass.instance_eval will create class methods.
+
+If you're interested in metaprogramming or understanding the Ruby object model, I'd definitely recommend the book. It's helped me out tremendously.
+
+
+
+
+
+
+
+
+
+
+send sends a message to an object instance and its ancestors in class hierarchy until some method reacts (because its name matches the first argument).
+
+Practically speaking, those lines are equivalent:
+
+1.send '+', 2
+1.+(2)
+1 + 2
+Note that send bypasses visibility checks, so that you can call private methods, too (useful for unit testing).
+
+If there is really no variable before send, that means that the global Object is used:
+
+send :to_s    # "main"
+send :class   # Object
+
+
+
+
+
+Ruby Best Practices
+
+Issue 1.26: Structural Design Patterns
+
+2011-12-27 18:00, written by Gregory Brown
+Originally published as part of the first volume of the Practicing Ruby newsletter on February 28, 2011. Most of these issues draw inspiration from discussions and teaching sessions at my free online school, Mendicant University.
+
+In this two part series, I’ve been looking at the classical design patterns laid out by the Gang of Four and exploring their relevance to modern day Ruby programming. Rather than teaching the design patterns themselves, my goal is to give practical examples using real code so that you can consider what the strengths and weaknesses of these techniques are.
+
+In this issue, I’ll be focusing on the structural design patterns, all of which have to do with the relationships between clusters of code. The seven patterns listed below are the ones we’ll focus on in this article.
+
+Adapter
+Bridge
+Composite
+Proxy
+Decorator
+Facade
+Flyweight
+
+
+
+
+
+Design Patterns in Ruby: Introduction
+
+By Stefano | Monday June 21st, 2010 7 Comments
+Hello everyone.
+
+With this post I would like to start a serie of articles concerning the description of the most common design patterns and how these can be applied with the Ruby language.
+
+In the world of software engineering you don’t need to reinvent the wheel to face daily problems: these problems are often very common and in most cases they require a similar resolution.
+
+Christopher Alexander says that “each pattern describes a problem which occurs over and over again in our environment, and then describes the core of the solution to that problem, in such way that you can use this solution a million times over, without ever doing it the same way twice“.
+
+In 1995, Erich Gamma, Richard Helm, Ralph Johnson and John Vlissides, starting from the work of Christopher Alexander and Kent Beck, have published “Design Patterns: Elements of Reusable Object-Oriented Software.” With this book, the four authors (from then knowned as GoF, Gang of Four) have proposed solutions to the 23 most common and recurring problems in software engineering.
+
+The GoF have analyzed and divided the 23 patterns into 3 categories:
+
+Creational patterns
+
+Abstract Factory
+Builder
+Factory Method
+Prototype
+Singleton
+Structural patterns
+
+Adapter
+Bridge
+Composite
+Decorator
+Facade
+Flyweight
+Proxy
+Behavioral patterns
+
+Chain
+Command
+Interpreter
+Iterator
+Mediator
+Memento
+Observer
+State
+Strategy
+Template
+Visitor
+We will see during this series all the most common patterns: we’ll analyze the problem and define a solution if possible using the potential provided by the Ruby language.
+
+All showed code will be freely accessible in an out repository on GitHub at this address: design_patterns_in_ruby.
