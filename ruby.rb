@@ -3940,3 +3940,241 @@ You can invoke this method with zero, one, or two arguments. If you specify one 
 gument, it is assigned to the first parameter and the second parameter uses its default
 value. There is no way, however, to specify a value for the second parameter and use
 the default value of the first parameter.
+Variable-Length Argument Lists and Arrays
+Sometimes we want to write methods that can accept an arbitrary number of argu-
+ments. To do this, we put an * before one of the method’s parameters. Within the body
+of the method, this parameter will refer to an array that contains the zero or more
+arguments passed at that position. For example:
+# Return the largest of the one or more arguments passed
+def max(first, *rest)
+# Assume that the required first argument is the largest
+max = first
+# Now loop through each of the optional arguments looking for bigger ones
+rest.each {|x| max = x if x > max }
+# Return the largest one we found
+max
+end
+The max method requires at least one argument, but it may accept any number of ad-
+ditional arguments. The first argument is available through the first parameter. Any
+additional arguments are stored in the rest array. We can invoke max like this:
+max(1)
+max(1,2)
+max(1,2,3)
+# first=1, rest=[]
+# first=1, rest=[2]
+# first=1, rest=[2,3]
+Note that in Ruby, all Enumerable objects automatically have a max method, so the
+method defined here is not particularly useful.
+No more than one parameter may be prefixed with an *. In Ruby 1.8, this parameter
+must appear after all ordinary parameters and after all parameters with defaults speci-
+fied. It should be the last parameter of the method, unless the method also has a
+parameter with an & prefix (see below). In Ruby 1.9, a parameter with an * prefix must
+still appear after any parameters with defaults specified, but it may be followed by
+additional ordinary parameters. It must also still appear before any &-prefixed
+parameter.
+ Passing arrays to methods
+We’ve seen how * can be used in a method declaration to cause multiple arguments to
+be gathered or coalesced into a single array. It can also be used in a method invocation
+to scatter, expand, or explode the elements of an array (or range or enumerator) so that
+each element becomes a separate method argument. The * is sometimes called the splat
+operator, although it is not a true operator. We’ve seen it used before in the discussion
+of parallel assignment in §4.5.5.
+Suppose we wanted to find the maximum value in an array (and that we didn’t know
+that Ruby arrays have a built-in max method!). We could pass the elements of the array
+to the max method (defined earlier) like this:
+data = [3, 2, 1]
+m = max(*data)
+# first = 3, rest=[2,1] => 3
+Consider what happens without the *:
+m = max(data)
+# first = [3,2,1], rest=[] => [3,2,1]
+In this case, we’re passing an array as the first and only argument, and our max method
+returns that first argument without performing any comparisons on it.
+The * can also be used with methods that return arrays to expand those arrays for use
+in another method invocation. Consider the polar and cartesian methods defined
+earlier in this chapter:
+# Convert the point (x,y) to Polar coordinates, then back to Cartesian
+x,y = cartesian(*polar(x, y))
+In Ruby 1.9, enumerators are splattable objects. To find the largest letter in a string,
+for example, we could write:
+max(*"hello world".each_char)
+# => 'w'
+ Mapping Arguments to Parameters
+When a method definition includes parameters with default values or a parameter pre-
+fixed with an *, the assignment of argument values to parameters during method
+invocation gets a little bit tricky.
+In Ruby 1.8, the position of the special parameters is restricted so that argument values
+are assigned to parameters from left to right. The first arguments are assigned to the
+ordinary parameters. If there are any remaining arguments, they are assigned to the
+parameters that have defaults. And if there are still more arguments, they are assigned
+to the array argument.
+Ruby 1.9 has to be more clever about the way it maps arguments to parameters because
+the order of the parameters is no longer constrained. Suppose we have a method that
+is declared with o ordinary parameters, d parameters with default values, and one array
+parameter prefixed with *. Now assume that we invoke this method with a arguments.
+If a is less than o, an ArgumentError is raised; we have not supplied the minimum
+required number of arguments.
+If a is greater than or equal to o and less than or equal to o+d, then the leftmost a–o
+parameters with defaults will have arguments assigned to them. The remaining (to the
+right) o+d–a parameters with defaults will not have arguments assigned to them, and
+will just use their default values.
+If a is greater than o+d, then the array parameter whose name is prefixed with an * will
+have a–o–d arguments stored in it; otherwise, it will be empty.
+Once these calculations are performed, the arguments are mapped to parameters from
+left to right, assigning the appropriate number of arguments to each parameter.
+6.4.4 Hashes for Named Arguments
+When a method requires more than two or three arguments, it can be difficult for the
+programmer invoking the method to remember the proper order for those arguments.
+Some languages allow you to write method invocations that explicitly specify a pa-
+rameter name for each argument that is passed. Ruby does not support this method
+invocation syntax, but it can be approximated if you write a method that expects a hash
+as its argument or as one of its arguments:
+# This method returns an array a of n numbers. For any index i, 0 <= i < n,
+# the value of element a[i] is m*i+c. Arguments n, m, and c are passed
+# as keys in a hash, so that it is not necessary to remember their order.
+def sequence(args)
+# Extract the arguments from the hash.
+# Note the use of the || operator to specify defaults used
+# if the hash does not define a key that we are interested in.
+n = args[:n] || 0
+m = args[:m] || 1
+c = args[:c] || 0
+a = []
+n.times {|i| a << m*i+c }
+a
+end
+# Start with an empty array
+# Calculate the value of each array element
+# Return the array
+You might invoke this method with a hash literal argument like this:
+sequence({:n=>3, :m=>5})
+# => [0, 5, 10]
+In order to better support this style of programming, Ruby allows you to omit the curly
+braces around the hash literal if it is the last argument to the method (or if the only
+argument that follows it is a block argument, prefixed with &). A hash without braces
+is sometimes called a bare hash, and when we use one it looks like we are passing
+separate named arguments, which we can reorder however we like:
+sequence(:m=>3, :n=>5)
+# => [0, 3, 6, 9, 12]
+As with other ruby methods, we can omit the parentheses, too:
+# Ruby 1.9 hash syntax
+sequence c:1, m:3, n:5
+# => [1, 4, 7, 10, 13]
+If you omit the parentheses, then you must omit the curly braces. If curly braces follow
+the method name outside of parentheses, Ruby thinks you’re passing a block to the
+method:
+sequence {:m=>3, :n=>5}
+# Syntax error!
+ Block Arguments
+Recall from §5.3 that a block is a chunk of Ruby code associated with a method invo-
+cation, and that an iterator is a method that expects a block. Any method invocation
+may be followed by a block, and any method that has a block associated with it may
+invoke the code in that block with the yield statement. To refresh your memory, the
+following code is a block-oriented variant on the sequence method developed earlier in
+the chapter:
+# Generate a sequence of n numbers m*i + c and pass them to the block
+def sequence2(n, m, c)
+i = 0
+while(i < n)
+# loop n times
+yield i*m + c
+# pass next element of the sequence to the block
+i += 1
+end
+end
+# Here is how you might use this version of the method
+sequence2(5, 2, 2) {|x| puts x } # Print numbers 2, 4, 6, 8, 10
+One of the features of blocks is their anonymity. They are not passed to the method in
+a traditional sense, they have no name, and they are invoked with a keyword rather
+than with a method. If you prefer more explicit control over a block (so that you can
+pass it on to some other method, for example), add a final argument to your method,
+and prefix the argument name with an ampersand.* If you do this, then that argument
+will refer to the block—if any—that is passed to the method. The value of the argument
+will be a Proc object, and instead of using yield, you invoke the call method of the Proc:
+def sequence3(n, m, c, &b) # Explicit argument to get block as a Proc
+i = 0
+while(i < n)
+b.call(i*m + c)
+# Invoke the Proc with its call method
+i += 1
+end
+end
+# Note that the block is still passed outside of the parentheses
+sequence3(5, 2, 2) {|x| puts x }
+Notice that using the ampersand in this way changes only the method definition. The
+method invocation remains the same. We end up with the block argument being
+declared inside the parentheses of the method definition, but the block itself is still
+specified outside the parentheses of the method invocation.
+Passing Proc Objects Explicitly
+If you create your own Proc object (we’ll see how to do this later in the chapter) and
+want to pass it explicitly to a method, you can do this as you would pass any other
+value—a Proc is an object like any other. In this case, you should not use an ampersand
+in the method definition:
+# This version expects an explicitly-created Proc object, not a block
+def sequence4(n, m, c, b) # No ampersand used for argument b
+i = 0
+while(i < n)
+b.call(i*m + c)
+# Proc is called explicitly
+i += 1
+end
+end
+p = Proc.new {|x| puts x }
+sequence4(5, 2, 2, p)
+# Explicitly create a Proc object
+# And pass it as an ordinary argument
+Twice before in this chapter, we’ve said that a special kind of parameter must be the
+last one in the parameter list. Block arguments prefixed with ampersands must really
+be the last one. Because blocks are passed unusually in method invocations, named
+block arguments are different and do not interfere with array or hash parameters in
+which the brackets and braces have been omitted. The following two methods are legal,
+for example:
+def sequence5(args, &b) # Pass arguments as a hash and follow with a block
+n, m, c = args[:n], args[:m], args[:c]
+i = 0
+while(i < n)
+b.call(i*m + c)
+i += 1
+end
+end
+# Expects one or more arguments, followed by a block
+def max(first, *rest, &block)
+max = first
+rest.each {|x| max = x if x > max }
+block.call(max)
+max
+end
+These methods work fine, but notice that you can avoid the complexity of these cases
+by simply leaving your blocks anonymous and calling them with yield.
+It is also worth noting that the yield statement still works in a method defined with an
+& parameter. Even if the block has been converted to a Proc object and passed as an
+argument, it can still be invoked as an anonymous block, as if the block argument was
+not there.
+Using & in method invocation
+We saw earlier that you can use * in a method definition to specify that multiple argu-
+ments should be packed into an array, and that you can use * in a method invocation
+to specify that an array should be unpacked so that its elements become separate
+arguments. & can also be used in definitions and invocations. We’ve just seen that & in
+a method definition allows an ordinary block associated with a method invocation to
+be used as a named Proc object inside the method. When & is used before a Proc object
+in a method invocation, it treats the Proc as if it was an ordinary block following the
+invocation.
+Consider the following code which sums the contents of two arrays:
+a, b = [1,2,3], [4,5]
+sum = a.inject(0) {|total,x| total+x }
+sum = b.inject(sum) {|total,x| total+x }
+# Start with some data.
+# => 6. Sum elements of a.
+# => 15. Add the elements of b in.
+We described the inject iterator earlier in §5.3.2. If you don’t remember, you can look
+up its documentation with ri Enumerable.inject. The important thing to notice about
+this example is that the two blocks are identical. Rather than having the Ruby inter-
+preter parse the same block twice, we can create a Proc to represent the block, and use
+the single Proc object twice:
+a, b = [1,2,3], [4,5]
+# Start with some data.
+summation = Proc.new {|total,x| total+x } # A Proc object for summations.
+sum = a.inject(0, &summation)
+# => 6
+sum = b.inject(sum, &summation)
+# => 15
