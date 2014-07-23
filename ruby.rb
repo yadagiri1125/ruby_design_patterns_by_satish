@@ -4178,3 +4178,572 @@ sum = a.inject(0, &summation)
 # => 6
 sum = b.inject(sum, &summation)
 # => 15
+
+
+If you use & in a method invocation, it must appear before the last argument in the
+invocation. Blocks can be associated with any method call, even when the method is
+not expecting a block, and never uses yield. In the same way, any method invocation
+may have an & argument as its last argument.
+In a method invocation an & typically appears before a Proc object. But it is actually
+allowed before any object with a to_proc method. The Method class (covered later in
+this chapter) has such a method, so Method objects can be passed to iterators just as
+Proc objects can.
+In Ruby 1.9, the Symbol class defines a to_proc method, allowing symbols to be prefixed
+with & and passed to iterators. When a symbol is passed like this, it is assumed to be
+the name of a method. The Proc object returned by the to_proc method invokes the
+named method of its first argument, passing any remaining arguments to that named
+method. The canonical case is this: given an array of strings, create a new array of those
+strings, converted to uppercase. Symbol.to_proc allows us to accomplish this elegantly
+as follows:
+words = ['and', 'but', 'car']
+# An array of words
+uppercase = words.map &:upcase
+# Convert to uppercase with String.upcase
+upper = words.map {|w| w.upcase } # This is the equivalent code with a block
+ Procs and Lambdas
+Blocks are syntactic structures in Ruby; they are not objects, and cannot be manipulated
+as objects. It is possible, however, to create an object that represents a block. Depending
+on how the object is created, it is called a proc or a lambda. Procs have block-like
+behavior and lambdas have method-like behavior. Both, however, are instances of class
+Proc.
+Creating Procs
+We’ve already seen one way to crfate a Proc object: by associating a block with a method
+that is defined with an ampersand-prefixed block argument. There is nothing prevent-
+ing such a method from returning the Proc object for use outside the method:
+# This method creates a proc from a block
+def makeproc(&p) # Convert associated block to a Proc and store in p
+p
+end
+# Return the Proc object
+With a makeproc method like this defined, we can create a Proc object for ourselves:
+adder = makeproc {|x,y| x+y }
+The variable adder now refers to a Proc object. Proc objects created in this way are procs,
+not lambdas. All Proc objects have a call method that, when invoked, runs the code
+contained by the block from which the proc was created. For example:
+sum = adder.call(2,2)
+# => 4
+In addition to being invoked, Proc objects can be passed to methods, stored in data
+structures and otherwise manipulated like any other Ruby object.
+As well as creating procs by method invocation, there are three methods that create
+Proc objects (both procs and lambdas) in Ruby. These methods are commonly used,
+and it is not actually necessary to define a makeproc method like the one shown earlier.
+In addition to these Proc-creation methods, Ruby 1.9 also supports a new literal syntax
+for defining lambdas. The subsections that follow discuss the methods Proc.new,
+lambda, and proc, and also explain the Ruby 1.9 lambda literal syntax.
+Proc.new
+We’ve already seen Proc.new used in some of the previous examples in this chapter.
+This is the normal new method that most classes support, and it’s the most obvious way
+to create a new instance of the Proc class. Proc.new expects no arguments, and returns
+a Proc object that is a proc (not a lambda). When you invoke Proc.new with an associated
+block, it returns a proc that represents the block. For example:
+p = Proc.new {|x,y| x+y }
+If Proc.new is invoked without a block from within a method that does have an asso-
+ciated block, then it returns a proc representing the block associated with the containing
+method. Using Proc.new in this way provides an alternative to using an ampersand-
+prefixed block argument in a method definition. The following two methods are
+equivalent, for example:
+def invoke(&b)
+b.call
+end
+def invoke
+Proc.new.call
+end
+Kernel.lambda
+Another technique for creating Proc objects is with the lambda method. lambda is a
+method of the Kernel module, so it behaves like a global function. As its name suggests,
+the Proc object returned by this method is a lambda rather than a proc. lambda expects
+no arguments, but there must be a block associated with the invocation:
+is_positive = lambda {|x| x > 0 }
+Lambda History
+Lambdas and the lambda method are so named in reference to lambda calculus, a branch
+of mathematical logic that has been applied to functional programming languages. Lisp
+also uses the term “lambda” to refer to functions that can be manipulated as objects
+Kernel.proc
+In Ruby 1.8, the global proc method is a synonym for lambda. Despite its name, it returns
+a lambda, not a proc. Ruby 1.9 fixes this; in that version of the language, proc is a
+synonym for Proc.new.
+Because of this ambiguity, you should never use proc in Ruby 1.8 code. The behavior
+of your code might change if the interpreter was upgraded to a newer version. If you
+are using Ruby 1.9 code and are confident that it will never be run with a Ruby 1.8
+interpreter, you can safely use proc as a more elegant shorthand for Proc.new.
+Lambda Literals
+Ruby 1.9 supports an entirely new syntax for defining lambdas as literals. We’ll begin
+with a Ruby 1.8 lambda, created with the lambda method:
+succ = lambda {|x| x+1}
+In Ruby 1.9, we can convert this to a literal as follows:
+• Replace the metAs with blocks in Ruby 1.9, the argument list of a lambda literal may include the dec-
+laration of block-local variables that are guaranteed not to overwrite variables with the
+same name in the enclosing scope. Simply follow the parameter list with a semicolon
+and a list of local variables:
+# This lambda takes 2 args and declares 3 local vars
+f = ->(x,y; i,j,k) { ... }
+hod name lambda with the punctuation ->.
+• Move the list of arguments outside of and just before the curly braces.
+• Change the argument list delimiters from || to ().
+With these changes, we get a Ruby 1.9 lambda literal:
+succ = ->(x){ x+1 }
+succ now holds a Proc object, which we can use just like any other:
+succ.call(2)
+# => 3
+The introduction of this syntax into Ruby was controversial, and it takes some getting
+used to. Note that the arrow characters -> are different from those used in hash literals.
+A lambda literal uses an arrow made with a hyphen, whereas a hash literal uses an arrow
+made with an equals sign.
+One benefit of this new lambda syntax over the traditional block-based lambda creation
+methods is that the Ruby 1.9 syntax allows lambdas to be declared with argument
+defaults, just as methods can be:
+zoom = ->(x,y,factor=2) { [x*factor, y*factor] }
+As with method declarations, the parentheses in lambda literals are optional, because
+the parameter list and local variable lists are completely delimited by the ->, ;, and {.
+We could rewrite the three lambdas above like this:
+succ = ->x { x+1 }
+f = -> x,y; i,j,k { ... }
+zoom = ->x,y,factor=2 { [x*factor, y*factor] }
+Lambda parameters and local variables are optional, of course, and a lambda literal can
+omit this altogether. The minimal lambda, which takes no arguments and returns
+nil, is the following:
+->{}
+One benefit of this new syntax is its succinctness. It can be helpful when you want to
+pass a lambda as an argument to a method or to another lambda:
+def compose(f,g)
+# Compose 2 lambdas
+->(x) { f.call(g.call(x)) }
+end
+succOfSquare = compose(->x{x+1}, ->x{x*x})
+succOfSquare.call(4)
+# => 17: Computes (4*4)+1
+
+Lambda literals create Proc objects and are not the same thing as blocks. If you want
+to pass a lambda literal to a method that expects a block, prefix the literal with &, just
+as you would with any other Proc object. Here is how we might sort an array of numbers
+into descending order using both a block and a lambda literal:
+data.sort {|a,b| b-a }
+# The block version
+data.sort &->(a,b){ b-a } # The lambda literal version
+In this case, as you can see, regular block syntax is simpler.
+Invoking Procs and Lambdas
+Procs and lambdas are objects, not methods, and they cannot be invoked in the same
+way that methods are. If p refers to a Proc object, you cannot invoke p as a method. But
+because p is an object, you can invoke a method of p. We’ve already mentioned that
+the Proc class defines a method named call. Invoking this method executes the code
+in the original block. The arguments you pass to the call method become arguments
+to the block, and the return value of the block becomes the return value of the call
+method:
+f = Proc.new {|x,y| 1.0/(1.0/x + 1.0/y) }
+z = f.call(x,y)
+The Proc class also defines the array access operator to work the same way as call. This
+means that you can invoke a proc or lambda using a syntax that is like method
+invocation, where parentheses have been replaced with square brackets. The proc
+invocation above, for example, could be replaced with this code:
+z = f[x,y]
+Ruby 1.9 offers an additional way to invoke a Proc object; as an alternative to square
+brackets, you can use parentheses prefixed with a period:
+z = f.(x,y)
+.() looks like a method invocation missing the method name. This is not an operator
+that can be defined, but rather is syntactic-sugar that invokes the call method. It can
+be used with any object that defines a call method and is not limited to Proc objects.
+The Arity of a Proc
+The arity of a proc or lambda is the number of arguments it expects. (The word is
+derived from the “ary” suffix of unary, binary, ternary, etc.) Proc objects have an
+arity method that returns the number of arguments they expect. For example:
+lambda{||}.arity
+# => 0. No arguments expected
+lambda{|x| x}.arity
+# => 1. One argument expected
+lambda{|x,y| x+y}.arity # => 2. Two arguments expected
+The notion of arity gets confusing when a Proc accepts an arbitrary number of argu-
+ments in an *-prefixed final argument. When a Proc allows optional arguments, the
+arity method returns a negative number of the form -n-1. A return value of this form
+indicates that the Proc requires n arguments, but it may optionally take additional ar-
+guments as well. -n-1 is known as the one’s-complement of n, and you can invert it
+with the ~ operator. So if arity returns a negative number m, then ~m (or -m-1) gives you
+the number of required arguments:
+lambda {|*args|}.arity
+# => -1.
+lambda {|first, *rest|}.arity # => -2.
+~-1 = -(-1)-1 = 0 arguments required
+~-2 = -(-2)-1 = 1 argument required
+There is one final wrinkle to the arity method. In Ruby 1.8, a Proc declared without
+any argument clause at all (that is, without any || characters) may be invoked with any
+number of arguments (and these arguments are ignored). The arity method returns
+–1 to indicate that there are no required arguments. This has changed in Ruby 1.9: a
+Proc declared like this has an arity of 0. If it is a lambda, then it is an error to invoke it
+with any arguments:
+puts lambda {}.arity
+# –1 in Ruby 1.8; 0 in Ruby 1.9
+Proc Equality
+The Proc class defines an == method to determine whether two Proc objects are equal.
+It is important to understand, however, that merely having the same source code is not
+enough to make two procs or lambdas equal to each other:
+lambda {|x| x*x } == lambda {|x| x*x }
+# => false
+The == method only returns true if one Proc is a clone or duplicate of the other:
+p = lambda {|x| x*x }
+q = p.dup
+p == q
+p.object_id == q.object_id
+# => true: the two procs are equal
+# => false: they are not the same object
+How Lambdas Differ from Procs
+A proc is the object form of a block, and it behaves like a block. A lambda has slightly
+modified behavior and behaves more like a method than a block. Calling a proc is like
+yielding to a block, whereas calling a lambda is like invoking a method. In Ruby 1.9,
+you can determine whether a Proc object is a proc or a lambda with the instance method
+lambda?. This predicate returns true for lambdas and false for procs. The subsections
+that follow explain the differences between procs and lambdas in detail.
+6.5.5.1 Return in blocks, procs, and lambdas
+Recall from Chapter 5 that the return statement returns from the lexically enclosing
+method, even when the statement is contained within a block. The return statement
+in a block does not just return from the block to the invoking iterator, it returns from
+the method that invoked the iterator. For example:
+def test
+puts "entering method"
+1.times { puts "entering block"; return } # Makes test method return
+puts "exiting method" # This line is never executed
+end
+test
+A proc is like a block, so if you call a proc that executes a return statement, it attempts
+to return from the method that encloses the block that was converted to the proc. For
+example:
+def test
+puts "entering method"
+p = Proc.new { puts "entering proc"; return }
+p.call
+# Invoking the proc makes method return
+puts "exiting method" # This line is never executed
+end
+test
+Using a return statement in a proc is tricky, however, because procs are often passed
+around between methods. By the time a proc is invoked, the lexically enclosing method
+may already have returned:
+def procBuilder(message)
+# Create and return a proc
+Proc.new { puts message; return } # return returns from procBuilder
+# but procBuilder has already returned here!
+end
+def test
+puts "entering method"
+p = procBuilder("entering proc")
+p.call
+# Prints "entering proc" and raises LocalJumpError!
+puts "exiting method" # This line is never executed
+end
+test
+By converting a block into an object, we are able to pass that object around and use it
+“out of context.” If we do this, we run the risk of returning from a method that has
+already returned, as was the case here. When this happens, Ruby raises a
+LocalJumpError.
+The fix for this contrived example is to remove the unnecessary return statement, of
+course. But a return statement is not always unnecessary, and another fix is to use a
+lambda instead of a proc. As we said earlier, lambdas work more like methods than
+blocks. A return statement in a lambda, therefore, returns from the lambda itself, not
+from the method that surrounds the creation site of the lambda:
+def test
+puts "entering method"
+p = lambda { puts "entering lambda"; return }
+p.call
+# Invoking the lambda does not make the method return
+puts "exiting method" # This line *is* executed now
+end
+test
+The fact that return in a lambda only returns from the lambda itself means that we
+never have to worry about LocalJumpError:
+def lambdaBuilder(message)
+# Create and return a lambda
+lambda { puts message; return } # return returns from the lambda
+end
+def test
+puts "entering method"
+l = lambdaBuilder("entering lambda")
+l.call
+# Prints "entering lambda"
+puts "exiting method" # This line is executed
+end
+test
+Break in blocks, procs and lambdas
+Figure 5-3 illustrated the behavior of the break statement in a block; it causes the block
+to return to its iterator and the iterator to return to the method that invoked it. Because
+procs work like blocks, we expect break to do the same thing in a proc. We can’t easily
+test this, however. When we create a proc with Proc.new, Proc.new is the iterator that
+break would return from. And by the time we can invoke the proc object, the iterator
+has already returned. So it never makes sense to have a top-level break statement in a
+proc created with Proc.new:
+def test
+puts "entering test method"
+proc = Proc.new { puts "entering proc"; break }
+proc.call
+# LocalJumpError: iterator has already returned
+puts "exiting test method"
+end
+test
+If we create a proc object with an & argument to the iterator method, then we can invoke
+it and make the iterator return:
+def iterator(&proc)
+puts "entering iterator"
+proc.call # invoke the proc
+puts "exiting iterator"
+# Never executed if the proc breaks
+end
+def test
+iterator { puts "entering proc"; break }
+end
+test
+Lambdas are method-like, so putting a break statement at the top-level of a lambda,
+without an enclosing loop or iteration to break out of, doesn’t actually make any sense!
+We might expect the following code to fail because there is nothing to break out of in
+the lambda. In fact, the top-level break just acts like a return:
+def test
+puts "entering test method"
+lambda = lambda { puts "entering lambda"; break; puts "exiting lambda" }
+lambda.call
+puts "exiting test method"
+end
+test
+6.5.5.3 Other control-flow statements
+A top-level next statement works the same in a block, proc, or lambda: it causes the
+yield statement or call method that invoked the block, proc, or lambda to return. If
+next is followed by an expression, then the value of that expression becomes the return
+value of the block, proc, or lambda
+redo also works the same in procs and lambdas: it transfers control back to the begin-
+ning of the proc or lambda.
+retry is never allowed in procs or lambdas: using it always results in a LocalJumpError.
+raise behaves the same in blocks, procs, and lambdas. Exceptions always propagate
+up the call stack. If a block, proc, or lambda raises an exception and there is no local
+rescue clause, the exception first propagates to the method that invoked the block with
+yield or that invoked the proc or lambda with call.
+6.5.5.4 Argument passing to procs and lambdas
+Invoking a block with yield is similar to, but not the same as, invoking a method. There
+are differences in the way argument values in the invocation are assigned to the argu-
+ment variables declared in the block or method. The yield statement uses yield
+semantics, whereas method invocation uses invocation semantics. Yield semantics are
+similar to parallel assignment and are described in §5.4.4. As you might expect,
+invoking a proc uses yield semantics and invoking a lambda uses invocation semantics:
+p = Proc.new {|x,y| print x,y }
+p.call(1)
+# x,y=1:
+nil used for missing rvalue:
+p.call(1,2)
+# x,y=1,2:
+2 lvalues, 2 rvalues:
+p.call(1,2,3)
+# x,y=1,2,3: extra rvalue discarded:
+p.call([1,2])
+# x,y=[1,2]: array automatically unpacked:
+Prints
+Prints
+Prints
+Prints
+1nil
+12
+12
+This code demonstrates that the call method of a proc handles the arguments it
+receives flexibly: silently discarding extras, silently adding nil for omitted arguments,
+and even unpacking arrays. (Or, not demonstrated here, packing multiple arguments
+into a single array when the proc expects only a single argument.)
+Lambdas are not flexible in this way; like methods, they must be invoked with precisely
+the number of arguments they are declared with:
+l = lambda {|x,y|
+l.call(1,2)
+#
+l.call(1)
+#
+l.call(1,2,3)
+#
+l.call([1,2])
+#
+l.call(*[1,2]) #
+print x,y }
+This works
+Wrong number of
+Wrong number of
+Wrong number of
+Works: explicit
+arguments
+arguments
+arguments
+splat to unpack the array
+Closures and Shared Variables
+It is important to understand that a closure does not just retain the value of the variables
+it refers to—it retains the actual variables and extends their lifetime. Another way to
+say this is that the variables used in a lambda or proc are not statically bound when the
+lambda or proc is created. Instead, the bindings are dynamic, and the values of the
+variables are looked up when the lambda or proc is executed.
+As an example, the following code defines a method that returns two lambdas. Because
+the lambdas are defined in the same scope, they share access to the variables in that
+scope. When one lambda alters the value of a shared variable, the new value is available
+to the other lambda:
+# Return a pair of lambdas that share access to a local variable.
+def accessor_pair(initialValue=nil)
+value = initialValue # A local variable shared by the returned lambdas.
+getter = lambda { value }
+# Return value of local variable.
+setter = lambda {|x| value = x }
+# Change value of local variable.
+return getter,setter
+# Return pair of lambdas to caller.
+end
+getX, setX = accessor_pair(0) # Create accessor lambdas for initial value 0.
+puts getX[]
+# Prints 0. Note square brackets instead of call.
+setX[10]
+# Change the value through one closure.
+puts getX[]
+# Prints 10. The change is visible through the other.
+The fact that lambdas created in the same scope share access to variables can be a feature
+or a source of bugs. Any time you have a method that returns more than one closure,
+you should pay particular attention to the variables they use. Consider the following
+code:
+# Return an array of lambdas that multiply by the arguments
+def multipliers(*args)
+x = nil
+args.map {|x| lambda {|y| x*y }}
+end
+double,triple = multipliers(2,3)
+puts double.call(2)
+# Prints 6 in Ruby 1.8
+This multipliers method uses the map iterator and a block to return an array of lambdas
+(created inside the block). In Ruby 1.8, block arguments are not always local to the
+block (see §5.4.3), and so all of the lambdas that are created end up sharing access to
+x, which is a local variable of the multipliers method. As noted above, closures dont
+capture the current value of the variable: they capture the variable itself. Each of the
+lambdas created here share the variable x. That variable has only one value, and all of
+the returned lambdas use that same value. That is why the lambda we name double
+ends up tripling its argument instead of doubling it.
+In this particular code, the issue goes away in Ruby 1.9 because block arguments are
+always block-local in that version of the language. Still, you can get yourself in trouble
+any time you create lambdas within a loop and use a loop variables (such as an array
+index) within the lambda.
+
+ Closures and Bindings
+The Proc class defines a method named binding. Calling this method on a proc or
+lambda returns a Binding object that represents the bindings in effect for that closure.
+More About Bindings
+We’ve been discussing the bindings of a closure as if they were simply a mapping from
+variable names to variable values. In fact, bindings involve more than just variables.
+They hold all the information necessary to execute a method, such as the value of
+self, and the block, if any, that would be invoked by a yield.
+A Binding object doesn’t have interesting methods of its own, but it can be used as the
+second argument to the global eval function (see §8.2), providing a context in which
+to evaluate a string of Ruby code. In Ruby 1.9, Binding has its own eval method, which
+you may prefer to use. (Use ri to learn more about Kernel.eval and Binding.eval.)
+The use of a Binding object and the eval method gives us a back door through which
+we can manipulate the behavior of a closure. Take another look at this code from earlier:
+
+# Return a lambda that retains or "closes over" the argument n
+def multiplier(n)
+lambda {|data| data.collect{|x| x*n } }
+end
+doubler = multiplier(2)
+# Get a lambda that knows how to double
+puts doubler.call([1,2,3]) # Prints 2,4,6
+Now suppose we want to alter the behavior of doubler:
+eval("n=3", doubler.binding) # Or doubler.binding.eval("n=3") in Ruby 1.9
+puts doubler.call([1,2,3])
+# Now this prints 3,6,9!
+As a shortcut, the eval method allows you to pass a Proc object directly instead of
+passing the Binding object of the Proc. So we could replace the eval invocation above
+with:
+eval("n=3", doubler)
+Bindings are not only a feature of closures. The Kernel.binding method returns a
+Binding object that represents the bindings in effect at whatever point you happen to
+call it.
+WSGC
+ Method Objects
+Ruby’s methods and blocks are executable language constructs, but they are not ob-
+jects. Procs and lambdas are object versions of blocks; they can be executed and also
+manipulated as data. Ruby has powerful metaprogramming (or reflection) capabilities,
+and methods can actually be represented as instances of the Method class. (Metaprog-
+ramming is covered in Chapter 8, but Method objects are introduced here.) You should
+note that invoking a method through a Method object is less efficient than invoking it
+directly. Method objects are not typically used as often as lambdas and procs.
+The Object class defines a method named method. Pass it a method name, as a string or
+a symbol, and it returns a Method object representing the named method of the receiver
+(or throws a NameError if there is no such method). For example:
+m = 0.method(:succ)
+# A Method representing the succ method of Fixnum 0
+In Ruby 1.9, you can also use public_method to obtain a Method object. It works like
+method does but ignores protected and private methods (see §7.2).
+The Method class is not a subclass of Proc, but it behaves much like it. Method objects
+are invoked with the call method (or the [] operator), just as Proc objects are. And
+Method defines an arity method just like the arity method of Proc. To invoke the Method
+m:
+puts m.call
+# Same as puts 0.succ. Or use puts m[].
+Invoking a method through a Method object does not change the invocation semantics,
+nor does it alter the meaning of control-flow statements such as return and break. The
+
+call method of a Method object uses method-invocation semantics, not yield semantics.
+Method objects, therefore, behave more like lambdas than like procs.
+Method objects work very much like Proc objects and can usually be used in place of
+them. When a true Proc is required, you can use Method.to_proc to convert a Method to
+a Proc. This is why Method objects can be prefixed with an ampersand and passed to a
+method in place of a block. For example:
+def square(x); x*x; end
+puts (1..10).map(&method(:square))
+Defining Methods with Procs
+In addition to obtaining a Method object that represents a method and converting it to
+a Proc, we can also go in the other direction. The define_method method (of Module)
+expects a Symbol as an argument, and creates a method with that name using the asso-
+ciated block as the method body. Instead of using a block, you can also pass a Proc or
+a Method object as the second argument.
+One important difference between Method objects and Proc objects is that Method objects
+are not closures. Ruby’s methods are intended to be completely self-contained, and
+they never have access to local variables outside of their own scope. The only binding
+retained by a Method object, therefore, is the value of self—the object on which the
+method is to be invoked.
+In Ruby 1.9, the Method class defines three methods that are not available in 1.8: name
+returns the name of the method as a string; owner returns the class in which the method
+was defined; and receiver returns the object to which the method is bound. For any
+method object m, m.receiver.class must be equal to or a subclass of m.owner.
+Unbound Method Objects
+In addition to the Method class, Ruby also defines an UnboundMethod class. As its name
+suggests, an UnboundMethod object represents a method, without a binding to the object
+on which it is to be invoked. Because an UnboundMethod is unbound, it cannot be
+invoked, and the UnboundMethod class does not define a call or [] method.
+To obtain an UnboundMethod object, use the instance_method method of any class or
+module:
+unbound_plus = Fixnum.instance_method("+")
+In Ruby 1.9, you can also use public_instance_method to obtain an UnboundMethod
+object. It works like instance_method does, but it ignores protected and private methods
+(see §7.2).
+In order to invoke an unbound method, you must first bind it to an object using the
+bind method:
+plus_2 = unbound_plus.bind(2)
+# Bind the method to the object 2
+The bind method returns a Method object, which can be invoked with its call method:
+sum = plus_2.call(2)
+# => 4
+Another way to obtain an UnboundMethod object is with the unbind method of the
+Method class:
+plus_3 = plus_2.unbind.bind(3)
+In Ruby 1.9, UnboundMethod has name and owner methods that work just as they do for
+the Method class.
+Functional Programming
+Ruby is not a functional programming language in the way that languages like Lisp and
+Haskell are, but Ruby’s blocks, procs, and lambdas lend themselves nicely to a func-
+tional programming style. Any time you use a block with an Enumerable iterator like
+map or inject, you’re programming in a functional style. Here are examples using the
+map and inject iterators:
+# Compute the average and standard deviation of an array of numbers
+mean = a.inject {|x,y| x+y } / a.size
+sumOfSquares = a.map{|x| (x-mean)**2 }.inject{|x,y| x+y }
+standardDeviation = Math.sqrt(sumOfSquares/(a.size-1))
+If the functional programming style is attractive to you, it is easy to add features to
+Ruby’s built-in classes to facilitate functional programming. The rest of this chapter
+explores some possibilities for working with functions. The code in this section is dense
+and is presented as a mind-expanding exploration, not as a prescription for good
+programming style. In particular, redefining operators as heavily as the code in the next
+section does is likely to result in programs that are difficult for others to read and
+maintain!
+This is advanced material and the code that follows assumes familiarity with Chap-
+ter 7. You may, therefore, want to skip the rest of this chapter the first time through
+the book.
+Applying a Function to an Enumerable
+map and inject are two of the most important iterators defined by Enumerable. Each
+expects a block. If we are to write programs in a function-centric way, we might like
+methods on our functions that allow us to apply those functions to a specified
+Enumerable object:
+# This module defines methods and operators for functional programming.
+module Functional
+# Apply this function to each element of the specified Enumerable,
+# returning an array of results. This is the reverse of Enumerable.map.
